@@ -1,5 +1,4 @@
-
-{-# LANGUAGE GADTs, DataKinds, EmptyDataDecls, KindSignatures, ScopedTypeVariables #-}
+{-# LANGUAGE GADTs, DataKinds, KindSignatures, ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 -- Copyright Matthew Brecknell 2013
@@ -26,15 +25,13 @@ select2 x y z xlty xeqy xbtw xeqz xgtz
 t1 a b c = BR (T1 a b c)
 t2 a b c d e = BR (T2 a b c d e)
 
-data Foo = Foo
+data Nat = Z | S Nat
 
-data Nat = Z | S Nat | M | P
-
-data N n a
+data N (n :: Nat) a
   = T1 (T n a) a (T n a)
   | T2 (T n a) a (T n a) a (T n a)
 
-data T n a where
+data T (n :: Nat) a where
   BR :: N n a -> T (S n) a
   LF :: T Z a
 
@@ -151,14 +148,8 @@ instance Foldable Tree where
 instance Show a => Show (Tree a) where
   showsPrec n t = showParen (n > 10) $ showString "fromList " . shows (toList t)
 
-uniq :: Eq a => [a] -> [a]
-uniq (x:y:t)
-  | x == y = uniq (x:t)
-  | otherwise = x : uniq (y:t)
-uniq xs = xs
-
 prop_toList :: [Int] -> Bool
-prop_toList xs = toList (fromList xs) == uniq (sort xs)
+prop_toList xs = toList (fromList xs) == L.nub (sort xs)
 
 prop_member :: [Int] -> Bool
 prop_member xs = all (\x -> member x xt) xs
@@ -171,12 +162,11 @@ prop_not_member x ys = notElem x ys ==> not (member x (fromList ys))
 prop_delete :: [Int] -> Bool
 prop_delete xs = all (\x -> toList (delete x xt) == L.delete x xu) xs
   where
-    xu = uniq (sort xs)
+    xu = L.nub (sort xs)
     xt = fromList xs
 
 prop_not_delete :: Int -> [Int] -> Property
 prop_not_delete x ys =
-  notElem x ys ==> toList (delete x (fromList ys)) == uniq (sort ys)
+  notElem x ys ==> toList (delete x (fromList ys)) == L.nub (sort ys)
 
 main = $(quickCheckAll)
-
